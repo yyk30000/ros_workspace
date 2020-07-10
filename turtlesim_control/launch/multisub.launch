@@ -1,0 +1,12 @@
+<launch>
+
+    <!-- publisher node -->
+    <node pkg =topic"turtlesim_control" type="turtlesim_liner.py" name="turtlesim_liner">
+
+
+    <node pkg =topic"turtlesim_control" type="turtlesim_rotate.py" name="turtlesim_rotate">
+
+
+    <node name ="rqt_gui" pkg ="rqt_gui" type="rqt_gui"/>
+
+</laubch>    
