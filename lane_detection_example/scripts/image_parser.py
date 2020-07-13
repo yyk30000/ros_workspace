@@ -20,8 +20,12 @@ class IMGParser:
             print(e)
 
         img_hsv =cv2.cvtColor(img_bgr,cv2.COLOR_BGR2HSV)
+        lower_wlane =np.array([20,5,240])
+        upper_wlane =np.array([30,10,255])
 
-        img_concat =np.concatenate([img_bgr,img_hsv],axis =1)
+        img_wlane =cv2.inRange(img_hsv,lower_wlane,upper_wlane)
+        img_wlane =cv2.cvtColor(img_wlane,cv2.COLOR_GRAY2BGR) 
+        img_concat =np.concatenate([img_bgr,img_hsv,img_wlane],axis =1)
 
         cv2.imshow("Image window",img_concat)
         cv2.waitKey(1)
