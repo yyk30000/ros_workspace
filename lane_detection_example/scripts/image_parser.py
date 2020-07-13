@@ -19,13 +19,29 @@ class IMGParser:
         except CvBridgeError as e:
             print(e)
 
-        img_hsv =cv2.cvtColor(img_bgr,cv2.COLOR_BGR2HSV)
+        self.img_hsv =cv2.cvtColor(img_bgr,cv2.COLOR_BGR2HSV)
 
-        img_concat =np.concatenate([img_bgr,img_hsv],axis =1)
+        
 
-        cv2.imshow("Image window",img_concat)
+        cv2.namedWindow('mouseRGB')
+        cv2.imshow('mouseRGB',self.img_hsv)
+
+        cv2.setMouseCallback('mouseRGB',self.mouseRGB)
+
         cv2.waitKey(1)
-
+    
+    def mouseRGB(self,event,x,y,flags,param):
+        if event ==cv2.EVENT_LBUTTONDOWN:
+            colorsB = self.img_hsv[y,x,0]
+            colorsG = self.img_hsv[y,x,1]
+            colorsR = self.img_hsv[y,x,2]
+            colors = self.img_hsv[y,x]
+            print("Red: ",colorsR)
+            print("Grean: ",colorsG)
+            print("Blue: ",colorsB)
+            print("BRG Format: ",colors)
+            print("coordinates of pixel: x",x,"Y:",y) 
+        
 if __name__ =='__main__' :
     rospy.init_node('image_parser',anonymous=True)
 
