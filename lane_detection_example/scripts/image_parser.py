@@ -1,4 +1,4 @@
-#1/usr/bin/env python
+#!/usr/bin/env python
 
 import rospy
 import cv2
@@ -15,12 +15,16 @@ class IMGParser:
     def callback(self,msg):
         try:
             np_arr = np.fromstring(msg.data,np.uint8)
-            img_bgr =cv2.imdecode(np.arr,cv2.IMREAD_COLOR)
+            img_bgr =cv2.imdecode(np_arr,cv2.IMREAD_COLOR)
         except CvBridgeError as e:
             print(e)
 
-        cv2.imshow("Image window",img_bgr)
-        cv2.waitkey(1)
+        img_hsv =cv2.cvtColor(img_bgr,cv2.COLOR_BGR2HSV)
+
+        img_concat =np.concatenate([img_bgr,img_hsv],axis =1)
+
+        cv2.imshow("Image window",img_concat)
+        cv2.waitKey(1)
 
 if __name__ =='__main__' :
     rospy.init_node('image_parser',anonymous=True)
