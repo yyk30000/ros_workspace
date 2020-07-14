@@ -66,3 +66,35 @@ def project2img_mtx(params_cam):
     R_f=np.array([[fc_x ,0,cx],
                 [0,fc_y,cy]])
     return R_f
+
+class BEVTransform:
+    def __init__(self,params_cam,xb=1.0,zb=1.0):
+        self.xb=xb
+        self.zb=zb
+
+        self.theta =np.deg2rad(params_cam["PITCH"])
+        self.width =params_cam["WIDTH"]
+        self.height =params_cam["HEIGHT"]
+
+        if params_cam["ENGINE"] =="UNITY":
+            self.alpha_r =np.deg2rad(params_cam["FOV"]/2)
+            self.fc_y=params_cam["HEIGHT"]/(2*np.tan(np.deg2rad([params_cam["FOV"]/2])))
+            self.alpha_c =np.arctan2(params_cam["WIDTH"]/2,self.fc_y)
+
+            self.fc_x =self.fc_y
+
+        else:
+            self.alpha_c =np.deg2rad(params_cam["FOV"]/2)
+            self.fc_x=params_cam["HEIGHT"]/(2*np.tan(np.deg2rad([params_cam["FOV"]/2])))
+            self.alpha_r =np.arctan2(params_cam["WIDTH"]/2,self.fc_x)
+
+            self.fc_y =self.fc_x
+
+        self.h = params_cam["Z"]
+
+        self.n =float(params_cam["WIDTH"])
+        self.m =float(params_cam["HEIGHT"])
+
+        self.RT_b2g =np.matmul(np.matmul(traslationMtx(xb,0,zb),rotationMtx(np.deg2rad(-90),0,0)),
+                                rotationMtx(0,0,np.deg2rad(180)))
+        self.build_tf(params_cam)                        
