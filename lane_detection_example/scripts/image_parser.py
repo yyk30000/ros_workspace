@@ -56,7 +56,10 @@ if __name__ =='__main__' :
         if image_parser.img_wlane is not None:
             img_warp =bev_op.warp_bev_img(image_parser.img_wlane)
 
-            cv2.imshow("Image window ",img_warp)
+            img_warp = cv2.cvtColor(img_warp, cv2.COLOR_GRAY2BGR)
+            img_lane = cv2.cvtColor(image_parser.img_wlane, cv2.COLOR_GRAY2BGR)
+            img_concat = np.concatenate([img_lane, img_warp], axis=1)
+            cv2.imshow("Image window ",img_concat)
 
             cv2.waitKey(1)
 

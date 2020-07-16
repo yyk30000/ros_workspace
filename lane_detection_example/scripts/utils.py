@@ -49,7 +49,7 @@ def rotationMtx(yaw,pitch,roll):
                 [0,0,0,1],
                 ])
     R_z=np.array([[math.cos(yaw),-math.sin(yaw),0,0],
-                [math.cos(yaw),math.cos(yaw),0,0],
+                [math.sin(yaw),math.cos(yaw),0,0],
                 [0,0,1,0],
                 [0,0,0,1],
                 ])
@@ -71,7 +71,6 @@ class BEVTransform:
     def __init__(self,params_cam,xb=1.0,zb=1.0):
         self.xb=xb
         self.zb=zb
-        self.x =0
 
         self.proj_mtx=project2img_mtx(params_cam)
         
@@ -96,6 +95,7 @@ class BEVTransform:
             self.fc_y =self.fc_x
 
         self.h = params_cam["Z"]
+        self.x = params_cam["X"]
 
         self.n =float(params_cam["WIDTH"])
         self.m =float(params_cam["HEIGHT"])
@@ -107,7 +107,7 @@ class BEVTransform:
 
     def calc_Xv_Yu(self,U,V):
 
-        Xv=self.h*(np.tan(self.theta)*(1-2*(V-1)/self.m-1)*np.tan(self.alpha_r)-1)/(-np.tan(self.theta)+(1-2*(V-1)/(self.m-1))*np.tan(self.alpha_r))
+        Xv=self.h*(np.tan(self.theta)*(1-2*(V-1)/(self.m-1))*np.tan(self.alpha_r)-1)/(-np.tan(self.theta)+(1-2*(V-1)/(self.m-1))*np.tan(self.alpha_r))
 
         Yu=(1-2*(U-1)/(self.n-1))*Xv*np.tan(self.alpha_c)
 
