@@ -1,6 +1,13 @@
 import numpy as np
 import cv2
 import math
+import rospy
+
+from sklearn import linear_model
+from std_msgs.msg import Float64
+import random
+
+
 def warp_image(img,source_prop):
 
     image_size = (img.shape[1],img.shape[0])
@@ -213,7 +220,163 @@ class BEVTransform:
 
         return xyz_g
 
+class CURVEFIt:
 
+    def __init__(self,order):
+
+        self.order=order
+        self.lane_width = 0.5
+        self.y_margin = 0.2
+        self.x_range=3
+        self.dx = 0.1
+        self.min_pts =50
+
+        self.ransac_left = linear_model.RANSACRegressor(base_estimator=linear_model.Ridge(alpha=2),
+                                                        max_trials=5,
+                                                        min_samples =self.min_pts,
+                                                        residual_threshold=0.4)
+        self.ransac_right = linear_model.RANSACRegressor(base_estimator=linear_model.Ridge(alpha=2),
+                                                        max_trials=5,
+                                                        min_samples =self.min_pts,
+                                                        residual_threshold=0.4)
+        self._init_model()
+
+    def _init_model(self):
+        X = np.stack([np.arange(0,2,0.02)**i for i in reversed(range(1,self.order+1))]).T
+        y_l = 0.5*self.lane_width*np.ones_like(np.arange(0,2,0.02))
+        y_r = - 0.5*self.lane_width*np.ones_like(np.arange(0,2,0.02))
+
+        self.ransac_left.fit(X,y_l)
+        self.ransac_right.fit(X,y_r)
+
+    def preprocess_pts(self,lane_pts):
+        idx_list =[]
+
+        for d in np.arange(0,self.x_range,self.dx):
+
+            idx_full_list =np.where(np.logical_and(lane_pts[0, :]>=d,lane_pts[0,:]<d+self.dx))[0].tolist()
+            idx_list += random.sample(idx_full_list,np.minimum(50,len(idx_full_list)))
+
+        lane_pts =lane_pts[:,idx_list]
+
+        x_g = np.copy(lane_pts[0,:])
+        y_g = np.copy(lane_pts[1,:])
+
+        X_g = np.stack([x_g**i for i in reversed(range(1, self.order+1))]).T
+
+        y_ransac_collect_r = self.ransac_right.predict(X_g)
+
+        y_right =y_g[np.logical_and(y_g>=y_ransac_collect_r-self.y_margin,y_g<y_ransac_collect_r+self.y_margin)]
+        x_right =x_g[np.logical_and(y_g>=y_ransac_collect_r-self.y_margin,y_g<y_ransac_collect_r+self.y_margin)]
+
+        y_ransac_collect_l =self.ransac_left.predict(X_g)
+
+        y_left =y_g[np.logical_and(y_g>=y_ransac_collect_l-self.y_margin,y_g<y_ransac_collect_l+self.y_margin)]
+        x_left =x_g[np.logical_and(y_g>=y_ransac_collect_l-self.y_margin,y_g<y_ransac_collect_l+self.y_margin)]
+
+        return x_left,y_left,x_right,y_right
+
+    def fit_curve(self,lane_pts):
+
+        x_left,y_left,x_right,y_right =self.preprocess_pts(lane_pts)
+        if len(y_left) == 0 or len(y_right)== 0:
+            
+            self._init_model()
+
+            x_left,y_left,x_right,y_right =self.preprocess_pts(lane_pts)
+
+        X_left =np.stack([x_left**i for i in reversed(range(1,self.order+1))]).T
+        X_right =np.stack([x_right**i for i in reversed(range(1,self.order+1))]).T
+        if y_left.shape[0]>=self.ransac_left.min_samples:
+            self.ransac_left.fit(X_left,y_left)
+
+        if y_right.shape[0]>=self.ransac_right.min_samples:
+            self.ransac_right.fit(X_right,y_right)
+
+        x_pred =np.arange(0,self.x_range,self.dx).astype(np.float32)
+        X_pred =np.stack([x_pred**i for i in reversed(range(1,self.order+1))]).T
+
+        y_pred_l =self.ransac_left.predict(X_pred)
+        y_pred_r =self.ransac_right.predict(X_pred)
+
+        if y_left.shape[0]>=self.ransac_left.min_samples and y_right.shape[0] >=self.ransac_right.min_samples:
+
+            self.lane_width =np.mean(y_pred_l-y_pred_r)
+
+        if y_left.shape[0]<self.ransac_left.min_samples:
+
+            y_pred_l =y_pred_r -self.lane_width
+
+        if y_right.shape[0]<self.ransac_right.min_samples:
+
+            y_pred_r =y_pred_l -self.lane_width
+
+        return x_pred, y_pred_l,y_pred_r
+
+    
+def draw_lane_img(img,leftx,lefty,rightx,righty):
+
+        point_np =cv2.cvtColor(np.copy(img),cv2.COLOR_GRAY2BGR)
+
+        for ctr in zip(leftx,lefty):
+            point_np =cv2.circle(point_np,ctr,2,(255,0,0),-1)
+
+        for ctr in zip(rightx,righty):
+            point_np =cv2.circle(point_np,ctr,2,(0,0,255),-1)
+
+        return point_np
+       
+class purePursuit:
+    
+    def __init__(self,lfd):
+        self.is_look_forward_point=False
+        self.vehicle_length =1
+
+        self.lfd =lfd
+        self.min_lfd = 0.7
+        self.max_lfd =1.2
+
+        self.speed_pub = rospy.Publisher('/commands/motor/speed',Float64,queue_size=1)
+        self.position_pub =rospy.Publisher('/commands/servo/position',Float64,queue_size=1)
+
+        self.speed_value =2000
+
+    def steering_angle(self,x_pred,y_pred_l,y_pred_r):
+        y_pred = -0.5*(y_pred_l+y_pred_r)
+
+        self.is_look_forward_point=False
+
+        dis_pts = np.sqrt(np.square(x_pred) + np.square(y_pred))
+
+        for i, dis_i in enumerate(dis_pts):
+
+            if x_pred[i]>0:
+
+                if dis_i >= self.lfd:
+                    self.is_look_forward_point=True
+
+                    break
+
+        theta=math.atan2(y_pred[i],x_pred[i])
+
+        if self.is_look_forward_point:
+            steering_deg= math.atan2((2*self.vehicle_length*math.sin(theta)),self.lfd)*180/math.pi
+            
+            self.steering =np.clip(steering_deg,-22,22)/44+0.5
+
+            print(self.steering)
+            return self.steering
+
+        else:
+            self.steering =0
+            print("no found forward point")
+            return self.steering
+
+    def pub_cmd(self):
+
+        self.speed_pub.publish(self.speed_value)
+        self.position_pub.publish(self.steering)
+         
 
 
 
