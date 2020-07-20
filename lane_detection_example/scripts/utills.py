@@ -2,6 +2,10 @@ import numpy as np
 import cv2
 import math
 
+from std_msgs.msg import Float64
+import rospy
+
+import matplotlib.pyplot as plt
 
 def warp_image(img, source_prop):
     
@@ -142,7 +146,7 @@ class BEVTransform:
         xn , yn = xc/zc, yc/zc
         xy1 = np.matmul(proj_mtx, np.concatenate([xn,yn,np.ones_like(xn)], axis=0))
 
-        xy1= xy1[0:2,:].tan
+        xy1= xy1[0:2,:].T
         src_pts = np.concatenate([U.reshape([-1,1]),V.reshape([-1,1])],axis=1).astype(np.float32)
         dst_pts = xy1.astype(np.float32)
 
@@ -172,11 +176,54 @@ class BEVTransform:
         else:
             xyz_g = np.zeros((4,10))
 
-        return xyz_g                                         
+        return xyz_g                                        
 
+class STOPLineEstimator:
+    def __init__(self):
+
+        self.n_bins = 30
+        self.x_max = 3
+        self.y_max = 0.1
+        self.bins = np.linspace(0,self.x_max, self.n_bins)
+        self.min_pts = 10
+
+        self.sline_pub = rospy.Publisher("/stop line",Float64, queue_size=1)
+
+    def get_x_points(self, lane_pts):
+
+        self.x = lane_pts[0,np.logical_and(lane_pts[1,:]>-self.y_max,lane_pts[1,:]<=self.y_max)]
+
+    def esimate_dist(self, percentile):
+        if self.x.shape[0] > self.min_pts:
+
+            self.d_stopline = np.percentile(self.x, percentile)
+
+        else:
+
+            self.d_stopline = self.x_max
+
+        return self.d_stopline      
+
+    def visualize_dist(self):
+        fig, ax = plt.subplots(figsize=(8,4))
+
+        n, bins, patches = ax.hist(self.x,self.bins, destiny=1)          
         
+        ax.cla()
 
+        bins = (bins[1:]+bins[:-1])/2
 
+        n_cum = np.cumsum(n)
+
+        n_cum = n_cum/n_cum[-1]
+
+        plt.plot(bins, n_cum)
+
+        plt.show()
+
+    def pub_sline(self):
+
+        self.sline_pub.publish(self.d_stopline)    
             
             
 

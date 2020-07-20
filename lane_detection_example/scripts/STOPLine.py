@@ -3,12 +3,13 @@
 import rospy
 import cv2
 import numpy as np
-import os, rospkg
+import os
+import rospkg
 import json
 
 from sensor_msgs.msg import CompressedImage
 from cv_bridge import CvBridgeError
-from utills import BEVTransform
+from utills import BEVTransform, STOPLineEstimator
 
 
 class IMGParser:
@@ -48,19 +49,24 @@ if __name__ =='__main__' :
 
     image_parser =IMGParser()
     bev_op =BEVTransform(params_cam=params_cam)
+    sline_detector = STOPLineEstimator()
 
     rate =rospy.Rate(30)
 
     while not rospy.is_shutdown():
 
-        if image_parser.img_wlane is not None:
+        if image_parser.img_w is not None:
 
-            img_warp = bev_op.warp_bev_img(image_parser.img_wlane)
 
-            cv2.imshow("Image window", img_warp)
-            cv2.waitKey(1)
+            lane_pts = bev_op.recon_lane_pts(image_parser.img_w)
+
+            sline_detector.get._x_points(lane_pts)
+            sline_detector.estimate_dist(3*100)
+
+            sline_detector.visualize_dist()
+
+            sline_detector.pub_sline()
+
+          
 
             rate.sleep()
-
-    
-        
