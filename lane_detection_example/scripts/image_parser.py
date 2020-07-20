@@ -8,12 +8,12 @@ import json
 
 from sensor_msgs.msg import CompressedImage
 from cv_bridge import CvBridgeError
-from utils import BEVTransform,CURVEFIt,draw_lane_img ,purePursuit
+from utils import BEVTransform,CURVEFIt,draw_lane_img ,purePursuit,STOPLineEstimator
 
 
 class IMGParser:
     def __init__(self):
-        self.image_sub =rospy.Subscriber("/image_jpeg/compressed",CompressedImage,self.callback)
+        self.image_sub =rospy.Subscriber("/imag_jpeg/compressed",CompressedImage,self.callback)
 
         self.img_wlane=None
 
@@ -30,7 +30,9 @@ class IMGParser:
         lower_wlane=np.array([0,0,220])
         upper_wlane=np.array([40,15,255])
 
+        
         self.img_wlane=cv2.inRange(img_hsv,lower_wlane,upper_wlane)
+        
 
         
 
@@ -48,6 +50,7 @@ if __name__ =='__main__' :
 
     image_parser =IMGParser()
     bev_op =BEVTransform(params_cam=params_cam)
+    sline_detector =STOPLineEstimator()
     curve_learner = CURVEFIt(order=3)
     ctrler = purePursuit(lfd=0.8)
 
@@ -55,12 +58,18 @@ if __name__ =='__main__' :
 
     while not rospy.is_shutdown():
         
+        
         if image_parser.img_wlane is not None:
+
             img_warp =bev_op.warp_bev_img(image_parser.img_wlane)
             lane_pts =bev_op.recon_lane_pts(image_parser.img_wlane)
 
             # print(lane_pts)
-
+            # sline_detector.get_x_points(lane_pts)
+            # sline_detector.estimate_dist(0.3)
+            # sline_detector.visualize_dist()
+            # sline_detector.pub_sline()
+           
             x_pred,y_pred_l,y_pred_r =curve_learner.fit_curve(lane_pts)
 
             ctrler.steering_angle(x_pred,y_pred_l,y_pred_r)
@@ -74,11 +83,11 @@ if __name__ =='__main__' :
                                                 xyr[:,0].astype(np.int32),
                                                 xyr[:,1].astype(np.int32))
             
-            
-            # img_lane = cv2.cvtColor(image_parser.img_wlane, cv2.COLOR_GRAY2BGR)
-            # img_concat = np.concatenate([img_lane, img_warp], axis=1)
+           
+            img_lane = cv2.cvtColor(image_parser.img_wlane, cv2.COLOR_GRAY2BGR)
+            img_concat = np.concatenate([img_lane, img_warp], axis=1)
+           
             cv2.imshow("Image window ",img_warp1)
-
             cv2.waitKey(1)
 
             rate.sleep()
