@@ -16,6 +16,7 @@ class TRAFFICDetector:
         self.traffic_msg =String()
         self.signal_pub =rospy.Publisher('/traffic_light',String,queue_size= 10)
         self.img_hsv =None
+        self.tcolor =None
     def callback(self,msg):
         try:
             np_arr =np.fromstring(msg.data,np.uint8)
@@ -50,16 +51,26 @@ class TRAFFICDetector:
 
         pix_max = np.max([pix_r,pix_y,pix_g])
         idx_s =np.argmax([pix_r,pix_y,pix_g])
-
+        
         if pix_max >40:
             if idx_s ==0:
                 self.traffic_msg.data ="RED"
+                if self.tcolor != "RED":
+                    print("RED")
+                    self.tcolor ="RED"
 
             elif idx_s ==1:
                 self.traffic_msg.data ="YELLOW"
+                
+                if self.tcolor !="YELLOW":
+                    print("YELLOW")
+                    self.tcolor ="YELLOW"
 
             elif idx_s ==2:
                 self.traffic_msg.data="GREEN"
+                if self.tcolor !="GREEN":
+                    print("GREEN")
+                    self.tcolor ="GREEN"
 
         else:
             self.traffic_msg.data="None"
