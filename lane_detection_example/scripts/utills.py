@@ -7,6 +7,8 @@ import matplotlib.pyplot as plt
 from std_msgs.msg import Float64
 from sklearn import linear_model
 import random
+from nav_msgs.msg import Path,Odometry
+from geometry_msgs.msg import PoseStamped
 
 class STOPLineEstimator:
     def __init__(self):
@@ -16,6 +18,8 @@ class STOPLineEstimator:
         self.y_max=0.1
         self.bins =np.linspace(0, self.x_max, self.n_bins)
         self.min_pts=10
+
+        self.lane_path = Path()
 
         self.sline_pub =rospy.Publisher("/morai_msgs", Float64, queue_size=1)
     
@@ -60,6 +64,8 @@ class CURVEFFit:
         self.dx=0.1
         self.min_pts =50
 
+        self.lane_path = Path()
+
         self.ransac_left =linear_model.RANSACRegressor(base_estimator=linear_model.Ridge(alpha=2),
                                                       max_trials=5,
                                                       min_samples=self.min_pts,
@@ -70,6 +76,8 @@ class CURVEFFit:
                                                       min_samples=self.min_pts,
                                                       residual_threshold=0.4)
         self.__init__model()
+
+        self.path_pub = rospy.Publisher('./lane_path',Path, queue_size=30)
     
     def __init__model(self):
         X =np.stack([np.arange(0, 2, 0.02)**i for i in reversed(range(1, self.order+1))]).T
@@ -373,4 +381,24 @@ def project2img_mtx(params_cam):
     R_f =np.array([[fc_x, 0 , cx],
                 [0, fc_y , cy] ])
     return R_f
+
+def write_path_msg(self, x_pred,y_pred_l,y_pred_r):
+
+    self.lane_path = Path()
+    self.lane_path.header.frame_id='/map'
+
+    for i in range(len(x_pred)) :
+        tmp_pose=PoseStamped()
+        tmp_pose.pose.position.x=x_pred[i]
+        tmp_pose.pose.position.y=(0.5)*(y_pred_l[i] + y_pred_r[i])
+        tmp_pose.pose.position.z=0
+        tmp_pose.pose.orientation.x=0
+        tmp_pose.pose.orientation.y=0
+        tmp_pose.pose.orientation.z=0
+        tmp_pose.pose.orientation.w=1
+        self.lane_path.poses.append(tmp_pose)
+
+def pub_path_msg(self):
+
+    self.path_pub.publish(self.lane_path)        
 

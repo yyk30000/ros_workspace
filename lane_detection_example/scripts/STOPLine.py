@@ -60,7 +60,7 @@ if __name__ =='__main__' :
 
             lane_pts = bev_op.recon_lane_pts(image_parser.img_w)
 
-            sline_detector.get._x_points(lane_pts)
+            sline_detector.get_x_points(lane_pts)
             sline_detector.estimate_dist(3*100)
 
             sline_detector.visualize_dist()
@@ -70,3 +70,5 @@ if __name__ =='__main__' :
           
 
             rate.sleep()
+
+            
