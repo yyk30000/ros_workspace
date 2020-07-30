@@ -51,10 +51,58 @@ class STOPLineEstimator:
         self.sline_pub.publish(self.d_stopline)
 
 
+class purePursuit :
+    def __init__(self,lfd):
+        self.is_look_forward_point=False
+        self.vehicle_length=1
+
+        self.lfd=lfd
+        self.min_lfd=0.7
+        self.max_lfd=1.2
+
+        self.speed_pub = rospy.Publisher('/commands/motor/speed',Float64, queue_size=1)
+        self.position_pub = rospy.Publisher('/commands/servo/position',Float64,queue_size=1)
+
+        self.speed_value = 1000
+    def steering_angle(self, x_pred, y_pred_l, y_pred_r):
+        y_pred = -0.5*(y_pred_l+y_pred_r)
+
+        self.is_look_forward_point=False
+
+        dis_pts = np.sqrt(np.square(x_pred)+np.square(y_pred))
+
+        for i, dis_i in enumerate(dis_pts):
+
+            if x_pred[i]>0 :
+
+                if dis_i >=self.lfd :
+
+                    self.is_look_forward_point=True
+
+                    break
+
+        theta=math.atan2(y_pred[i],x_pred[i])
+
+        if self.is_look_forward_point :
+            steering_deg=math.atan2((2*self.vehicle_length*math.sin(theta)),self.lfd)*180/math.pi
+
+            self.steering=np.clip(steering_deg, -22,22)/44+0.5 
+            print( self.steering)
+            return self.steering
+
+        else :
+            self.steering = 0
+            print("no found forward point")
+            return self.steering
+
+    def pub_cmd(self):
+
+        self.speed_pub.publish(self.speed_value)
+        self.position_pub.publish(self.steering)            
 
 
 
-class CURVEFFit:
+class CURVEfit:
     def __init__(self, order):
         self.order = order
         self.lane_width =0.5
@@ -66,14 +114,14 @@ class CURVEFFit:
         self.lane_path = Path()
 
         self.ransac_left =linear_model.RANSACRegressor(base_estimator=linear_model.Ridge(alpha=2),
-                                                      max_trials=5,
-                                                      min_samples=self.min_pts,
-                                                      residual_threshold=0.4)
+                                                       max_trials=5,
+                                                       min_samples=self.min_pts,
+                                                       residual_threshold=0.4)
         
         self.ransac_right =linear_model.RANSACRegressor(base_estimator=linear_model.Ridge(alpha=2),
-                                                      max_trials=5,
-                                                      min_samples=self.min_pts,
-                                                      residual_threshold=0.4)
+                                                       max_trials=5,
+                                                       min_samples=self.min_pts,
+                                                       residual_threshold=0.4)
         self.__init__model()
 
         self.path_pub = rospy.Publisher('./lane_path',Path, queue_size=30)
@@ -154,8 +202,18 @@ class CURVEFFit:
         
         return x_pred, y_pred_l, y_pred_r
 
- 
+def draw_lane_img(img, leftx, lefty, rightx, righty):
 
+    point_np = cv2.cvtColor(np.copy(img),cv2.COLOR_GRAY2BGR)
+
+    for ctr in zip(leftx, lefty):
+        point_np = cv2.circle(point_np,ctr,2,(255,0,0),-1)        
+
+ 
+    for ctr in zip(rightx, righty):
+        point_np = cv2.circle(point_np, ctr , 2, (0,0,255),-1)
+
+    return point_np    
 
 
  
@@ -298,14 +356,7 @@ class BEVTransform:
 
 
 
-def draw_lane_img(img, leftx, lefty, rightx, righty):
-    point_np =cv2.cvtColor(np.copy(img), cv2.COLOR_GRAY2BGR)
 
-    for ctr in zip(leftx, lefty):
-        point_np =cv2.circle(point_np, ctr, 2, (255,0,0),-1 )
-    for ctr in zip(rightx, righty):
-        point_np =cv2.circle(point_np, ctr, 2, (0,0,255),-1 )
-    return point_np
 
 
 def warp_image(img,source_prop):
