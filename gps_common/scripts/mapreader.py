@@ -23,7 +23,7 @@ class point_pub:
 
         self.path_pub =rospy.Publisher('/pointcloud',PointCloud,queue_size=1)
         self.path_msg =PointCloud()
-        self.path_msg.header.frame_id='/point'
+        self.path_msg.header.frame_id='odom'
         self.path_msg.header.stamp= rospy.Time.now()
 
         
@@ -45,9 +45,9 @@ class point_pub:
                 print(cut)
                 if cut > 7:
                     read_pose=Point32()
-                    read_pose.x=float(tmp[0])-float(302444.59375)
-                    read_pose.y =float(tmp[1])-float(4122556.25)
-                    read_pose.z =float(tmp[2])-float(28.989999771118164)
+                    read_pose.x=float(tmp[0])-302459.942
+                    read_pose.y =float(tmp[1])-4122635.537
+                    read_pose.z =0
                     
                     self.path_msg.points.append(read_pose)
                 cut=cut+1
