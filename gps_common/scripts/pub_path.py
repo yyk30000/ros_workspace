@@ -25,7 +25,7 @@ class path_pub:
 
         rospack=rospkg.RosPack()
         pkg_path=rospack.get_path('gps_common')
-        full_path=pkg_path+'/path'+'/path.txt'
+        full_path=pkg_path+'/path'+'/kcity.txt'
         self.f=open(full_path,'r')
         lines=self.f.readlines()
         for line in lines:

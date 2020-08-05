@@ -23,6 +23,7 @@ class Pure_pursuit:
         rospy.init_node("make_path",anonymous=True)
         rospy.Subscriber("path", Path, self.path_callback)
         rospy.Subscriber("odom", Odometry, self.odom_callback)
+        rospy.Subscriber("imu", Imu, self.imu_callback)
         #rospy.Subscriber("amcl_pose", PoseWithCovarianceStamped, self.amcl_callback)
         self.motor_pub = rospy.Publisher("commands/motor/speed", Float64, queue_size=1)
         self.servo_pub = rospy.Publisher("commands/servo/position", Float64,queue_size=1)
@@ -70,7 +71,7 @@ class Pure_pursuit:
                     self.steering=atan2((2*self.vihicle_length*sin(theta)),self.lfd) 
                     print(self.steering*180/pi)
                     print(self.check_point)
-                    self.motor_msg.data=6000
+                    self.motor_msg.data=50000
 
                 else :
                     self.steering=0
@@ -95,8 +96,8 @@ class Pure_pursuit:
     
     def odom_callback(self,msg):
         self.is_odom=True
-        odom_quaternion=(msg.pose.pose.orientation.x,msg.pose.pose.orientation.y,msg.pose.pose.orientation.z,msg.pose.pose.orientation.w)
-        _,_,self.vihicle_yaw=euler_from_quaternion(odom_quaternion)
+        # odom_quaternion=(msg.pose.pose.orientation.x,msg.pose.pose.orientation.y,msg.pose.pose.orientation.z,msg.pose.pose.orientation.w)
+        # _,_,self.vihicle_yaw=euler_from_quaternion(odom_quaternion)
         self.current_position.x=msg.pose.pose.position.x-302459.942
         self.current_position.y=msg.pose.pose.position.y-4122635.537
     def amcl_callback(self,msg):
@@ -105,8 +106,11 @@ class Pure_pursuit:
         _,_,self.vihicle_yaw=euler_from_quaternion(amcl_quaternion)
         self.current_position.x=msg.pose.pose.position.x
         self.current_position.y=msg.pose.pose.position.y
-
-
+    
+    def imu_callback(self,msg):
+        self.is_imu=True
+        self.imu_quaternion=(msg.orientation.x,msg.orientation.y,msg.orientation.z,msg.orientation.w)
+        _,_,self.vihicle_yaw=euler_from_quaternion(self.imu_quaternion)
 if __name__ =="__main__":
     try:
         test_track=Pure_pursuit()
