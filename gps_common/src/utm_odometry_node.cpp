@@ -9,7 +9,7 @@
 #include <sensor_msgs/NavSatFix.h>
 #include <gps_common/conversions.h>
 #include <nav_msgs/Odometry.h>
-#include <morai_msgs/GPSMessage.msg>
+
 
 using namespace gps_common;
 
@@ -99,7 +99,7 @@ int main (int argc, char **argv) {
 
   odom_pub = node.advertise<nav_msgs::Odometry>("odom", 10);
 
-  ros::Subscriber fix_sub = node.subscribe("gps", 10, callback);
+  ros::Subscriber fix_sub = node.subscribe("fix", 10, callback);
 
   ros::spin();
 }

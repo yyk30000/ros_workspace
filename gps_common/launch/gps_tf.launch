@@ -2,5 +2,6 @@
 
     <node name="gps_tf" pkg="gps_common" type="gps_tf.py"/>
     <node name="utm_odometry_node" pkg="gps_common" type="utm_odometry_node"/>
+    <node name="mapreader" pkg="gps_common" type="mapreader.py"/>
 
 </launch>

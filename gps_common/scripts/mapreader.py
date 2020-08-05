@@ -23,14 +23,14 @@ class point_pub:
 
         self.path_pub =rospy.Publisher('/pointcloud',PointCloud,queue_size=1)
         self.path_msg =PointCloud()
-        self.path_msg.header.frame_id='odom'
+        self.path_msg.header.frame_id='map'
         self.path_msg.header.stamp= rospy.Time.now()
 
         
         rospack=rospkg.RosPack()
         pkg_path=rospack.get_path('gps_common')
     
-        full_path=pkg_path+'/path'
+        full_path=pkg_path+'/map'
         file_list=os.listdir(full_path)
         for i in file_list:
             file_path=full_path+'/'+i

@@ -35,7 +35,7 @@ class gps_odom:
                 quaternion,
                 rospy.Time.now(),
                 "base_link",
-                "odom")
+                "map")
 
             rate.sleep()
 

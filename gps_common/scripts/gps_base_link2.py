@@ -21,10 +21,8 @@ class simple_gps:
         self.is_odom=False
         self.odom_msg =Odometry()
         rospy.Subscriber("/odom",Odometry,self.status_callback)
-        self.x1= 0
-        self.y1= 0
-        self.x2=self.odom_msg.pose.pose.position.x
-        self.y2=self.odom_msg.pose.pose.position.y
+        self.x1=self.odom_msg.pose.pose.position.x
+        self.y1=self.odom_msg.pose.pose.position.y
         
 
         
@@ -49,21 +47,25 @@ class simple_gps:
 
                 dis =math.sqrt(dx*dx +dy*dy)
 
-                if dis > 2:       
+                if dis > 0.02:       
                     
-                
                     self.theta = math.atan2(dx,dy)
-                    print(self.theta)
-                    quaternion =quaternion_from_euler(0,0,self.theta)
-
-                    br=tf.TransformBroadcaster()
-                    br.sendTransform((self.odom_msg.pose.pose.position.x-302459.942,self.odom_msg.pose.pose.position.y-4122635.537,0),
-                    quaternion,
-                    rospy.Time.now(),
-                    "base_link",
-                    "odom")
                     self.x1=self.x2
                     self.y1=self.y2
+                    
+                else:
+                    self.prev_theta =self.theta
+
+                print(self.theta)
+                quaternion =quaternion_from_euler(0,0,self.theta)
+
+                br=tf.TransformBroadcaster()
+                br.sendTransform((self.odom_msg.pose.pose.position.x-302459.942,self.odom_msg.pose.pose.position.y-4122635.537,0),
+                quaternion,
+                rospy.Time.now(),
+                "base_link",
+                "map")
+                
 
 
 
