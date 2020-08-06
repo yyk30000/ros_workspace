@@ -21,18 +21,18 @@ class path_pub:
 
         self.path_pub =rospy.Publisher('/path',Path,queue_size=1)
         self.path_msg =Path()
-        self.path_msg.header.frame_id='/odom'
+        self.path_msg.header.frame_id='/map'
 
         rospack=rospkg.RosPack()
-        pkg_path=rospack.get_path('auto_car')
-        full_path=pkg_path+'/path'+'/path.txt'
+        pkg_path=rospack.get_path('control_planner')
+        full_path=pkg_path+'/path'+'/kcity.txt'
         self.f=open(full_path,'r')
         lines=self.f.readlines()
         for line in lines:
             tmp=line.split()
             read_pose=PoseStamped()
-            read_pose.pose.position.x =float(tmp[0])
-            read_pose.pose.position.y =float(tmp[1])
+            read_pose.pose.position.x = float(tmp[0])
+            read_pose.pose.position.y = float(tmp[1])
             read_pose.pose.orientation.w =1
             self.path_msg.poses.append(read_pose)
 
