@@ -21,7 +21,7 @@ class Pure_pursuit:
 
     def __init__(self):
         rospy.init_node("make_path",anonymous=True)
-        rospy.Subscriber("path", Path, self.path_callback)
+        rospy.Subscriber("local_path", Path, self.path_callback)
         rospy.Subscriber("odom", Odometry, self.odom_callback)
         rospy.Subscriber("imu", Imu, self.imu_callback)
         #rospy.Subscriber("amcl_pose", PoseWithCovarianceStamped, self.amcl_callback)
