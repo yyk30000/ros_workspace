@@ -23,8 +23,8 @@ class path_pub:
         self.local_x=0
         self.local_y=0
         self.local_path_pub=rospy.Subscriber("odom", Odometry, self.odom_callback)
-        self.path_pub =rospy.Publisher('/path',Path,queue_size=1)
-        self.path_local_pub =rospy.Publisher('/local_path',Path,queue_size=1)
+        self.path_pub =rospy.Publisher('/global_path',Path,queue_size=1)
+        self.path_local_pub =rospy.Publisher('/path',Path,queue_size=1)
         self.path_msg =Path()
         self.path_msg.header.frame_id='/map'
 
@@ -86,7 +86,7 @@ class path_pub:
                         self.path_local_msg.poses.append(read_pose2)
                         print(tmp[0],tmp[1],self.xy[0],self.xy[1])
                         pub_cut= pub_cut+1
-                        if self.xy[0]==tmp[0] and self.xy[1]==tmp[1]):
+                        if self.xy[0]==tmp[0] and self.xy[1]==tmp[1]:
                             pub_cut =0
 
 
