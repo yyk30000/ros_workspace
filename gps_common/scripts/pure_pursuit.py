@@ -26,7 +26,7 @@ class Pure_pursuit:
         rospy.Subscriber("odom", Odometry, self.odom_callback)
         rospy.Subscriber("imu", Imu, self.imu_callback)
         rospy.Subscriber("/sensors/core",VescStateStamped,self.core_callback)
-        rospy.Subscriber("/get_speed",Float64,self.get_speed_callback)
+        rospy.Subscriber("/target_vel",Float64,self.get_speed_callback)
         #rospy.Subscriber("amcl_pose", PoseWithCovarianceStamped, self.amcl_callback)
         self.motor_pub = rospy.Publisher("commands/motor/speed", Float64, queue_size=1)
         self.servo_pub = rospy.Publisher("commands/servo/position", Float64,queue_size=1)
@@ -81,16 +81,19 @@ class Pure_pursuit:
                 theta=-atan2(rotated_point.y,rotated_point.x)
                 if self.is_look_forward_point :
                     self.steering=atan2((2*self.vihicle_length*sin(theta)),self.lfd) 
-                    myradians = math.atan2(self.path.poses[1].pose.position.x -self.path.poses[len(self.path.poses)-1].pose.position.x,self.path.poses[1].pose.position.y -self.path.poses[len(self.path.poses)-1].pose.position.y)
+                    # myradians = math.atan2(self.path.poses[1].pose.position.x -self.path.poses[len(self.path.poses)-1].pose.position.x,self.path.poses[1].pose.position.y -self.path.poses[len(self.path.poses)-1].pose.position.y)
                     print(self.steering*180/pi)
                     print(self.check_point)
                     print(self.lfd)
-                    print(myradians)
-                    if theta < 0.1 and theta >-0.1:
-                        self.get_speed =100000
-                    else:
-                        self.get_speed =30000
-                    self.motor_msg.data=self.get_speed
+
+                    # print(myradians)
+                    # if theta < 0.1 and theta >-0.1:
+                    #     self.get_speed =100000
+                    # else:
+                    #     self.get_speed =30000
+                    self.motor_msg.data=self.get_speed*1000
+                    print(self.get_speed)
+
 
                 else :
                     self.steering=0
