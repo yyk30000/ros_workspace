@@ -10,6 +10,7 @@ from laser_geometry import LaserProjection
 from math import cos,sin,pi,sqrt,pow
 from geometry_msgs.msg import Point32,PoseStamped
 from nav_msgs.msg import Odometry,Path
+from morai_msgs.msg import ObjectInfo
 import numpy as np
 import tf
 from tf.transformations import euler_from_quaternion,quaternion_from_euler
@@ -63,6 +64,8 @@ class path_pub_tf :
     def __init__(self):
         rospy.init_node('path_pub', anonymous=True)
         rospy.Subscriber("odom", Odometry, self.odom_callback)
+        rospy.Subscriber("obj_info",ObjectInfo,self.obj_info_callback)
+        rospy.Subscriber("imu",Imu,self.imu_callback)
         self.global_path_pub = rospy.Publisher('/global_path',Path, queue_size=1)
         self.local_path_pub = rospy.Publisher('/path',Path, queue_size=1)
         self.vel_pub = rospy.Publisher('/target_vel',Float64, queue_size=1)
@@ -70,8 +73,14 @@ class path_pub_tf :
         self.global_path_msg.header.frame_id='/map'
         
         self.is_odom=False
+        self.is_obj_info =False
+        self.is_imu=False
         self.local_path_size=50
+        self.obj_info_data =ObjectInfo()
+        self.ego_pose =[]
 
+        self.x = 0
+        self.y = 0
 
 
         rospack=rospkg.RosPack()
@@ -92,13 +101,18 @@ class path_pub_tf :
 
         vel_planner=velocityPlanning(80,0.15)
         vel_profile=vel_planner.curveBasedVelocity(self.global_path_msg,100)
+        obj_info =vaildObject()
+
         # print(vel_profile)
 
     
 
         rate = rospy.Rate(20) # 20hz
         while not rospy.is_shutdown():
-   
+            if self.is_obj_info ==True and self.is_imu ==True:
+                obj_info.get_object(self.obj_info_data)
+                goi,loi=obj_info.calc_vaild_obj(self.ego_pose)
+                
             if self.is_odom == True :
                 local_path_msg=Path()
                 local_path_msg.header.frame_id='/map'
@@ -135,7 +149,11 @@ class path_pub_tf :
 
                 vel_msg=Float64()
                 vel_msg.data=vel_profile[current_waypoint]
-                print(vel_profile[current_waypoint])
+                # print(vel_profile[current_waypoint])
+                # print("")
+                print(loi)
+                print("")
+                print(self.ego_pose)
                 
                 self.global_path_pub.publish(self.global_path_msg)
                 self.local_path_pub.publish(local_path_msg)
@@ -145,13 +163,70 @@ class path_pub_tf :
 
     def odom_callback(self,msg):
         self.is_odom=True
-        odom_quaternion=(msg.pose.pose.orientation.x,msg.pose.pose.orientation.y,msg.pose.pose.orientation.z,msg.pose.pose.orientation.w)
+        # odom_quaternion=(msg.pose.pose.orientation.x,msg.pose.pose.orientation.y,msg.pose.pose.orientation.z,msg.pose.pose.orientation.w)
+        # _,_,self.vihicle_yaw=euler_from_quaternion(odom_quaternion)
 
         self.x=msg.pose.pose.position.x- 302459.942
         self.y=msg.pose.pose.position.y- 4122635.537
-        
+
         
 
+    def imu_callback(self,msg):
+            self.is_imu =True
+            imu_quaternion=(msg.orientation.x,msg.orientation.y,msg.orientation.z,msg.orientation.w)
+            _,_,vihicle_yaw=euler_from_quaternion(imu_quaternion)
+
+            self.ego_pose=[self.x,self.y,vihicle_yaw]
+
+    def obj_info_callback(self,msg):
+        self.is_obj_info =True
+        self.obj_info_data =msg
+        
+        
+class vaildObject:
+
+    def __init__(self):
+
+        self.vaild_stoplane_position =[
+                                        [58.26,1180.09],
+                                        [85.56,1228.28]
+
+                                    ]
+    def get_object(self,obj_msg):
+        self.all_object=ObjectInfo()
+        self.all_object=obj_msg
+
+    def calc_vaild_obj(self,ego_pose):
+        global_obect_info = []
+        local_object_info =[]
+        if self.all_object.num_of_objects > 0:
+
+            tmp_theta =ego_pose[2]
+            tmp_translation =[ego_pose[0],ego_pose[1]]
+            tmp_t=np.array([[cos(tmp_theta),-sin(tmp_theta),tmp_translation[0]],
+                            [sin(tmp_theta),cos(tmp_theta),tmp_translation[1]],
+                            [0,0,1]])
+            
+            tmp_det_t=np.array([[tmp_t[0][0],tmp_t[1][0],-(tmp_t[0][0]*tmp_translation[0]+tmp_t[1][0]*tmp_translation[1])],
+                                [tmp_t[0][1],tmp_t[1][1],-(tmp_t[0][1]*tmp_translation[0]+tmp_t[1][1]*tmp_translation[1])],
+                                [0,0,1]])
+            for num in range(self.all_object.num_of_objects):
+                global_result=np.array([[self.all_object.pose_x[num]],[self.all_object.pose_y[num]],[1]])
+                local_result=tmp_det_t.dot(global_result)
+                if local_result[0][0]> 0:
+                    global_obect_info.append([self.all_object.object_type[num],self.all_object.pose_x[num],self.all_object.pose_y[num],self.all_object.velocity[num]])
+                    local_object_info.append([self.all_object.object_type[num],local_result[0][0],local_result[1][0],self.all_object.velocity[num]])
+
+            for num in range(len(self.vaild_stoplane_position)):
+                global_result=np.array([[self.vaild_stoplane_position[num][0]],[self.vaild_stoplane_position[num][1]],[1]])
+                local_result =tmp_det_t.dot(global_result)
+
+                if local_result[0][0]> 0:
+                    global_obect_info.append([1,self.all_object.pose_x[num],self.all_object.pose_y[num],0])
+                    local_object_info.append([1,local_result[0][0],local_result[1][0],0])
+
+
+        return global_obect_info,local_object_info         
 
 
 if __name__ == '__main__':
