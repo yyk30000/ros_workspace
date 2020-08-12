@@ -109,51 +109,53 @@ class path_pub_tf :
 
         rate = rospy.Rate(20) # 20hz
         while not rospy.is_shutdown():
-            if self.is_obj_info ==True and self.is_imu ==True:
-                obj_info.get_object(self.obj_info_data)
-                goi,loi=obj_info.calc_vaild_obj(self.ego_pose)
-                
-            if self.is_odom == True :
-                local_path_msg=Path()
-                local_path_msg.header.frame_id='/map'
-                
-                x=self.x
-                y=self.y
-                min_dis=float('inf')
-                current_waypoint=-1
-                for i,waypoint in enumerate(self.global_path_msg.poses) :
+            if self.is_imu == True:
 
-                    distance=sqrt(pow(x-waypoint.pose.position.x,2)+pow(y-waypoint.pose.position.y,2))
-                    if distance < min_dis :
-                        min_dis=distance
-                        current_waypoint=i
-
-                
-                if current_waypoint != -1 :
-                    if current_waypoint + self.local_path_size < len(self.global_path_msg.poses):
-                        for num in range(current_waypoint,current_waypoint + self.local_path_size ) :
-                            tmp_pose=PoseStamped()
-                            tmp_pose.pose.position.x=self.global_path_msg.poses[num].pose.position.x
-                            tmp_pose.pose.position.y=self.global_path_msg.poses[num].pose.position.y
-                            tmp_pose.pose.orientation.w=1
-                            local_path_msg.poses.append(tmp_pose)
+                if self.is_obj_info ==True and self.is_imu ==True:
+                    obj_info.get_object(self.obj_info_data)
+                    goi,loi=obj_info.calc_vaild_obj(self.ego_pose)
                     
-                    else :
-                        for num in range(current_waypoint,len(self.global_path_msg.poses) ) :
-                            tmp_pose=PoseStamped()
-                            tmp_pose.pose.position.x=self.global_path_msg.poses[num].pose.position.x
-                            tmp_pose.pose.position.y=self.global_path_msg.poses[num].pose.position.y
-                            tmp_pose.pose.orientation.w=1
-                            local_path_msg.poses.append(tmp_pose)
+                if self.is_odom == True :
+                    local_path_msg=Path()
+                    local_path_msg.header.frame_id='/map'
+                    
+                    x=self.x
+                    y=self.y
+                    min_dis=float('inf')
+                    current_waypoint=-1
+                    for i,waypoint in enumerate(self.global_path_msg.poses) :
+
+                        distance=sqrt(pow(x-waypoint.pose.position.x,2)+pow(y-waypoint.pose.position.y,2))
+                        if distance < min_dis :
+                            min_dis=distance
+                            current_waypoint=i
+
+                    
+                    if current_waypoint != -1 :
+                        if current_waypoint + self.local_path_size < len(self.global_path_msg.poses):
+                            for num in range(current_waypoint,current_waypoint + self.local_path_size ) :
+                                tmp_pose=PoseStamped()
+                                tmp_pose.pose.position.x=self.global_path_msg.poses[num].pose.position.x
+                                tmp_pose.pose.position.y=self.global_path_msg.poses[num].pose.position.y
+                                tmp_pose.pose.orientation.w=1
+                                local_path_msg.poses.append(tmp_pose)
+                        
+                        else :
+                            for num in range(current_waypoint,len(self.global_path_msg.poses) ) :
+                                tmp_pose=PoseStamped()
+                                tmp_pose.pose.position.x=self.global_path_msg.poses[num].pose.position.x
+                                tmp_pose.pose.position.y=self.global_path_msg.poses[num].pose.position.y
+                                tmp_pose.pose.orientation.w=1
+                                local_path_msg.poses.append(tmp_pose)
 
 
-                vel_msg=Float64()
-                vel_msg.data=vel_profile[current_waypoint]
-                # print(vel_profile[current_waypoint])
-                # print("")
-                print(loi)
-                print("")
-                print(self.ego_pose)
+                    vel_msg=Float64()
+                    vel_msg.data=vel_profile[current_waypoint]
+                    # print(vel_profile[current_waypoint])
+                    # print("")
+                    print(loi)
+                    print("")
+                    print(self.ego_pose)
                 
                 self.global_path_pub.publish(self.global_path_msg)
                 self.local_path_pub.publish(local_path_msg)
@@ -166,8 +168,8 @@ class path_pub_tf :
         # odom_quaternion=(msg.pose.pose.orientation.x,msg.pose.pose.orientation.y,msg.pose.pose.orientation.z,msg.pose.pose.orientation.w)
         # _,_,self.vihicle_yaw=euler_from_quaternion(odom_quaternion)
 
-        self.x=msg.pose.pose.position.x- 302459.942
-        self.y=msg.pose.pose.position.y- 4122635.537
+        self.x=msg.pose.pose.position.x #- 302459.942
+        self.y=msg.pose.pose.position.y #- 4122635.537
 
         
 
