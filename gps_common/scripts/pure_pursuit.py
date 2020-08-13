@@ -46,6 +46,7 @@ class Pure_pursuit:
         self.check_point=-1
         self.car_speed =0 
         self.get_speed =5000
+        self.rpm_gain =4614
 
         self.steering_angle_to_servo_gain = -1.2135
         self.steering_angle_to_servo_offset=0.5304
@@ -91,7 +92,7 @@ class Pure_pursuit:
                     #     self.get_speed =100000
                     # else:
                     #     self.get_speed =30000
-                    self.motor_msg.data=self.get_speed*1000
+                    self.motor_msg.data=self.get_speed*self.rpm_gain/3.6
                     print(self.get_speed)
 
 
